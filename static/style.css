@@ -78,7 +78,7 @@ input[type=text], input[type=password], input[type=date], select {
   padding: .7rem .8rem;
   min-height: 3rem;
 }
-input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible {
+input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible, summary:focus-visible {
   outline: 3px solid var(--accent);
   outline-offset: 2px;
 }
@@ -127,6 +127,19 @@ button { font: inherit; cursor: pointer; }
   border-radius: 10px; padding: .6rem .8rem; margin: 0 0 1rem;
 }
 .empty { color: var(--muted); margin-top: 2rem; }
+
+.filters { margin-bottom: 1.5rem; }
+.filters summary { cursor: pointer; font-size: 1.05rem; font-weight: 650; }
+.filter-dates { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
+.filters label:first-of-type { margin-top: .9rem; }
+.filter-dates input { min-width: 0; }
+.filter-error { margin-top: 1rem; }
+.filter-buttons { display: flex; align-items: center; gap: .9rem; margin-top: 1rem; }
+.filter-buttons .primary { width: auto; padding: 0 1rem; }
+.filter-buttons .cancel { margin: 0; }
+@media (max-width: 360px) {
+  .filter-dates { grid-template-columns: 1fr; gap: 0; }
+}
 
 .grand {
   display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem;

@@ -29,6 +29,7 @@ Overtime is a small Flask application for keeping track of personal overtime. It
 - Password-protected access for one user
 - Add or take overtime by date using hours, minutes, or both; decimal hours and long minute values are supported
 - View entries grouped by month, with monthly and overall totals
+- Filter the overview and CSV export by date range and whether overtime was added or taken
 - Edit or delete entries
 - Choose the default or Meadow theme in Settings; the choice is saved across devices
 - Export logged time as CSV, with taken overtime shown as negative minutes and hours

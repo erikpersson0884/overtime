@@ -355,13 +355,67 @@ def delete(entry_id):
     return redirect(url_for("overview"))
 
 
+def parse_overview_filters(args):
+    filters = {
+        "start": args.get("start", "").strip(),
+        "end": args.get("end", "").strip(),
+        "action": args.get("action", "all"),
+    }
+    for key, label in (("start", "From"), ("end", "To")):
+        value = filters[key]
+        if value:
+            try:
+                parsed = date.fromisoformat(value)
+                if parsed.isoformat() != value:
+                    raise ValueError
+            except ValueError:
+                raise ValueError(f"{label} must be a valid date.")
+    if filters["start"] and filters["end"] and filters["start"] > filters["end"]:
+        raise ValueError("From date must be on or before To date.")
+    if filters["action"] not in ("all", "add", "take"):
+        raise ValueError("Choose a valid action filter.")
+    return filters
+
+
+def filtered_entries(filters, newest_first):
+    conditions = []
+    params = []
+    if filters["start"]:
+        conditions.append("work_date >= ?")
+        params.append(filters["start"])
+    if filters["end"]:
+        conditions.append("work_date <= ?")
+        params.append(filters["end"])
+    if filters["action"] != "all":
+        conditions.append("action = ?")
+        params.append(filters["action"])
+    where = " WHERE " + " AND ".join(conditions) if conditions else ""
+    order = "DESC" if newest_first else "ASC"
+    return get_db().execute(
+        "SELECT id, work_date, action, "
+        "CASE WHEN action = 'take' THEN -minutes ELSE minutes END AS minutes "
+        f"FROM entries{where} ORDER BY work_date {order}, id {order}",
+        params,
+    ).fetchall()
+
+
 @app.route("/overview")
 @login_required
 def overview():
-    rows = get_db().execute(
-        "SELECT id, work_date, action, "
-        "CASE WHEN action = 'take' THEN -minutes ELSE minutes END AS minutes FROM entries "
-        "ORDER BY work_date DESC, id DESC").fetchall()
+    filters = {
+        "start": request.args.get("start", ""),
+        "end": request.args.get("end", ""),
+        "action": request.args.get("action", "all"),
+    }
+    try:
+        filters = parse_overview_filters(request.args)
+    except ValueError as exc:
+        return render_template("overview.html", filters=filters, error=str(exc)), 400
+    rows = filtered_entries(filters, newest_first=True)
+    overall = get_db().execute(
+        "SELECT COALESCE(SUM(CASE WHEN action = 'take' THEN -minutes ELSE minutes END), 0) "
+        "FROM entries"
+    ).fetchone()[0]
     months = []
     for row in rows:
         key = row["work_date"][:7]
@@ -373,16 +427,19 @@ def overview():
         months[-1]["entries"].append(row)
         months[-1]["total"] += row["minutes"]
     grand = sum(m["total"] for m in months)
-    return render_template("overview.html", months=months, grand=grand)
+    filtered = bool(filters["start"] or filters["end"] or filters["action"] != "all")
+    return render_template("overview.html", months=months, grand=grand, overall=overall,
+                           filters=filters, filtered=filtered, error=None)
 
 
 @app.route("/export.csv")
 @login_required
 def export_csv():
-    rows = get_db().execute(
-        "SELECT work_date, CASE WHEN action = 'take' THEN -minutes ELSE minutes END AS minutes "
-        "FROM entries "
-        "ORDER BY work_date, id").fetchall()
+    try:
+        filters = parse_overview_filters(request.args)
+    except ValueError as exc:
+        abort(400, description=str(exc))
+    rows = filtered_entries(filters, newest_first=False)
     out = io.StringIO()
     writer = csv.writer(out)
     writer.writerow(["date", "minutes", "hours"])

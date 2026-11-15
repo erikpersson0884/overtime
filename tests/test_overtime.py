@@ -113,6 +113,72 @@ class OvertimeActionsTest(unittest.TestCase):
         with closing(sqlite3.connect(self.db_path)) as db:
             self.assertEqual(db.execute("SELECT COUNT(*) FROM entries").fetchone()[0], 0)
 
+    def test_overview_and_csv_filter_dates_and_actions(self):
+        for day, hours, action in (
+            ("2026-01-01", "1", "add"),
+            ("2026-01-02", "1.5", "take"),
+            ("2026-01-03", "2", "add"),
+            ("2026-01-04", "0.5", "take"),
+        ):
+            self.post_entry("/", day, hours, action)
+
+        params = {"start": "2026-01-02", "end": "2026-01-03", "action": "all"}
+        page = self.client.get("/overview", query_string=params).get_data(as_text=True)
+        self.assertIn('<strong class="grand-value">30m</strong>', page)
+        self.assertIn("(out of 1h overall)", page)
+        self.assertIn('aria-label="Delete -1h 30m on 2/1"', page)
+        self.assertIn('aria-label="Edit 2h on 3/1"', page)
+        self.assertNotIn('aria-label="Edit 1h on 1/1"', page)
+        self.assertNotIn('aria-label="Delete -30m on 4/1"', page)
+        self.assertIn('start=2026-01-02&amp;end=2026-01-03&amp;action=all', page)
+
+        params["action"] = "take"
+        page = self.client.get("/overview", query_string=params).get_data(as_text=True)
+        self.assertIn('<strong class="grand-value">-1h 30m</strong>', page)
+        self.assertIn("(out of 1h overall)", page)
+        self.assertNotIn('aria-label="Edit 2h on 3/1"', page)
+        rows = list(csv.reader(io.StringIO(
+            self.client.get("/export.csv", query_string=params).get_data(as_text=True)
+        )))
+        self.assertEqual(rows, [["date", "minutes", "hours"], ["2026-01-02", "-90", "-1.50"]])
+
+        params["action"] = "add"
+        rows = list(csv.reader(io.StringIO(
+            self.client.get("/export.csv", query_string=params).get_data(as_text=True)
+        )))
+        self.assertEqual(rows, [["date", "minutes", "hours"], ["2026-01-03", "120", "2.00"]])
+        page = self.client.get("/overview", query_string={"start": "2027-01-01"}).get_data(as_text=True)
+        self.assertIn("No entries match these filters.", page)
+        self.assertIn('<strong class="grand-value">0m</strong>', page)
+        self.assertIn("(out of 1h overall)", page)
+        rows = list(csv.reader(io.StringIO(
+            self.client.get("/export.csv", query_string={"start": "2027-01-01"}).get_data(as_text=True)
+        )))
+        self.assertEqual(rows, [["date", "minutes", "hours"]])
+
+    def test_invalid_overview_filters_are_rejected_for_page_and_export(self):
+        for params in (
+            {"start": "2026-02-30"},
+            {"end": "2026-1-02"},
+            {"start": "2026-02-01", "end": "2026-01-31"},
+            {"action": "other"},
+        ):
+            for path in ("/overview", "/export.csv"):
+                with self.subTest(path=path, params=params):
+                    response = self.client.get(path, query_string=params)
+                    self.assertEqual(response.status_code, 400)
+                    self.assertNotIn("No overtime logged yet", response.get_data(as_text=True))
+
+    def test_filter_panel_collapses_and_opens_for_errors(self):
+        page = self.client.get("/overview").get_data(as_text=True)
+        self.assertIn('<details class="card filters">', page)
+        page = self.client.get("/overview", query_string={"action": "take"}).get_data(as_text=True)
+        self.assertIn('<details class="card filters">', page)
+        self.assertIn("Filter entries <span class=\"muted\">(active)</span>", page)
+        page = self.client.get("/overview", query_string={"start": "invalid"}).get_data(as_text=True)
+        self.assertIn('<details class="card filters" open>', page)
+        self.assertIn("From must be a valid date.", page)
+
     def test_theme_is_saved_and_shared_across_sessions(self):
         page = self.client.get("/settings").get_data(as_text=True)
         self.assertIn('data-theme="default"', page)
