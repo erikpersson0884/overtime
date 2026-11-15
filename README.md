@@ -11,13 +11,14 @@ A small, single-user web app for recording and reviewing overtime. Log time by d
 
 1. [About the project](#about-the-project)
 2. [Features](#features)
-3. [Built with](#built-with)
-4. [Getting started](#getting-started)
-5. [Configuration](#configuration)
-6. [Scripts](#scripts)
-7. [Testing](#testing)
-8. [Deployment](#deployment)
-9. [Contributing](#contributing)
+3. [Screenshots](#screenshots)
+4. [Built with](#built-with)
+5. [Getting started](#getting-started)
+6. [Configuration](#configuration)
+7. [Scripts](#scripts)
+8. [Testing](#testing)
+9. [Deployment](#deployment)
+10. [Contributing](#contributing)
 11. [Authors](#authors)
 
 # About the project
@@ -37,6 +38,16 @@ Overtime is a small Flask application for keeping track of personal overtime. It
 - Installable as a progressive web app, with an offline status page
 
 Taking overtime creates a separate entry and reduces the balance, which can become negative. Existing entries remain additions.
+
+## Screenshots
+
+| Sign in (phone) | Log time (phone) | Overview (phone) | Settings (phone) |
+|---|---|---|---|
+| ![Sign in on phone](static/docs/images/signin-phone.png) | ![Log time on phone](static/docs/images/log-phone.png) | ![Overview on phone](static/docs/images/overview-phone.png) | ![Settings on phone](static/docs/images/settings-phone.png) |
+
+| Log time (desktop) | Overview (desktop) |
+|---|---|
+| ![Log time on desktop](static/docs/images/log-computer.png) | ![Overview on desktop](static/docs/images/overview-computer.png) |
 
 ## Built with
 
