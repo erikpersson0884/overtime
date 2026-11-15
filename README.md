@@ -27,11 +27,13 @@ Overtime is a small Flask application for keeping track of personal overtime. It
 ## Features
 
 - Password-protected access for one user
-- Log time by date using hours, minutes, or both; decimal hours and long minute values are supported
+- Add or take overtime by date using hours, minutes, or both; decimal hours and long minute values are supported
 - View entries grouped by month, with monthly and overall totals
 - Edit or delete entries
-- Export logged time as CSV
+- Export logged time as CSV, with taken overtime shown as negative minutes and hours
 - Persistent SQLite storage and a `/healthz` health check
+
+Taking overtime creates a separate entry and reduces the balance, which can become negative. Existing entries remain additions.
 
 ## Built with
 
@@ -107,7 +109,13 @@ The hash contains `$` characters. If you put it in a `.env` file, enclose it in 
 
 # Testing
 
-There is no automated test suite in the repository. For a basic runtime check, start the app and visit `http://localhost:8000/healthz`; it should return `ok`.
+Run the focused automated tests with Python and the dependencies in `requirements.txt` installed:
+
+```sh
+python -m unittest discover -s tests
+```
+
+For a basic runtime check, start the app and visit `http://localhost:8000/healthz`; it should return `ok`.
 
 # Deployment
 

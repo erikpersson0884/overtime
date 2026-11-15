@@ -10,6 +10,7 @@
   // Live total: hours (decimals ok) + minutes (can exceed 59).
   var hours = document.getElementById("hours");
   var minutes = document.getElementById("minutes");
+  var action = document.getElementById("action");
   var total = document.getElementById("total");
 
   function num(v) {
@@ -27,11 +28,13 @@
   function update() {
     var h = num(hours.value), m = num(minutes.value);
     if (isNaN(h) || isNaN(m)) { total.textContent = "Check the numbers"; return; }
-    total.textContent = fmt(Math.floor(h * 60 + m + 0.5));
+    var amount = Math.floor(h * 60 + m + 0.5);
+    total.textContent = (action && action.value === "take" && amount ? "-" : "") + fmt(amount);
   }
   if (hours && minutes && total) {
     hours.addEventListener("input", update);
     minutes.addEventListener("input", update);
+    if (action) action.addEventListener("change", update);
     update();
   }
 

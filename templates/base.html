@@ -15,7 +15,7 @@
     <span class="brand">Overtime</span>
     <form method="post" action="{{ url_for('logout') }}">
       <input type="hidden" name="csrf" value="{{ csrf_token }}">
-      <button class="quiet" type="submit">Log out</button>
+      <button class="logout" type="submit">Log out</button>
     </form>
   </header>
   {% endif %}

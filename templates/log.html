@@ -11,6 +11,12 @@
   <input id="date" name="date" type="date" value="{{ form.date }}" required
          {% if autofill_today %}data-today{% endif %}>
 
+  <label for="action">Action</label>
+  <select id="action" name="action" required>
+    <option value="add" {% if form.action == 'add' %}selected{% endif %}>Add overtime</option>
+    <option value="take" {% if form.action == 'take' %}selected{% endif %}>Take overtime</option>
+  </select>
+
   <div class="pair">
     <div>
       <label for="hours">Hours</label>

@@ -70,6 +70,7 @@ def init_db():
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 work_date TEXT NOT NULL,
                 minutes INTEGER NOT NULL CHECK (minutes > 0),
+                action TEXT NOT NULL DEFAULT 'add' CHECK (action IN ('add', 'take')),
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
             CREATE INDEX IF NOT EXISTS idx_entries_date ON entries(work_date);
@@ -79,6 +80,13 @@ def init_db():
             );
             CREATE INDEX IF NOT EXISTS idx_fail_ip ON login_failures(ip, ts);
         """)
+        db.execute("BEGIN IMMEDIATE")
+        columns = {row[1] for row in db.execute("PRAGMA table_info(entries)")}
+        if "action" not in columns:
+            db.execute(
+                "ALTER TABLE entries ADD COLUMN action TEXT NOT NULL DEFAULT 'add' "
+                "CHECK (action IN ('add', 'take'))"
+            )
         db.commit()
     finally:
         db.close()
@@ -91,12 +99,13 @@ init_db()
 
 def fmt_duration(minutes):
     minutes = int(minutes)
-    h, m = divmod(minutes, 60)
+    sign = "-" if minutes < 0 else ""
+    h, m = divmod(abs(minutes), 60)
     if h and m:
-        return f"{h}h {m}m"
+        return f"{sign}{h}h {m}m"
     if h:
-        return f"{h}h"
-    return f"{m}m"
+        return f"{sign}{h}h"
+    return f"{sign}{m}m"
 
 
 def fmt_decimal(minutes):
@@ -126,7 +135,7 @@ def parse_amount(raw, label):
 
 
 def parse_entry_form(form):
-    """Returns (iso_date, total_minutes) or raises ValueError."""
+    """Returns (iso_date, total_minutes, action) or raises ValueError."""
     try:
         work_date = date.fromisoformat(form.get("date", "").strip())
     except ValueError:
@@ -139,7 +148,10 @@ def parse_entry_form(form):
     total = math.floor(total_f + 0.5)
     if total <= 0:
         raise ValueError("Enter some time in hours, minutes or both.")
-    return work_date.isoformat(), total
+    action = form.get("action", "")
+    if action not in ("add", "take"):
+        raise ValueError("Choose whether to add or take overtime.")
+    return work_date.isoformat(), total, action
 
 
 def client_ip():
@@ -254,20 +266,21 @@ def logout():
 @app.route("/", methods=["GET", "POST"])
 @login_required
 def log():
-    form = {"date": date.today().isoformat(), "hours": "", "minutes": ""}
+    form = {"date": date.today().isoformat(), "hours": "", "minutes": "", "action": "add"}
     error = None
     if request.method == "POST":
-        form = {k: request.form.get(k, "") for k in ("date", "hours", "minutes")}
+        form = {k: request.form.get(k, "") for k in ("date", "hours", "minutes", "action")}
         try:
-            iso, total = parse_entry_form(request.form)
+            iso, total, action = parse_entry_form(request.form)
         except ValueError as exc:
             error = str(exc)
         else:
             db = get_db()
-            db.execute("INSERT INTO entries (work_date, minutes) VALUES (?, ?)",
-                       (iso, total))
+            db.execute("INSERT INTO entries (work_date, minutes, action) VALUES (?, ?, ?)",
+                       (iso, total, action))
             db.commit()
-            flash(f"Saved {fmt_duration(total)} on {fmt_day(iso)}.")
+            signed_total = -total if action == "take" else total
+            flash(f"Saved {fmt_duration(signed_total)} on {fmt_day(iso)}.")
             return redirect(url_for("log"))
     return render_template("log.html", form=form, error=error, editing=None,
                            autofill_today=(request.method == "GET"))
@@ -282,20 +295,21 @@ def edit(entry_id):
         abort(404)
     error = None
     if request.method == "POST":
-        form = {k: request.form.get(k, "") for k in ("date", "hours", "minutes")}
+        form = {k: request.form.get(k, "") for k in ("date", "hours", "minutes", "action")}
         try:
-            iso, total = parse_entry_form(request.form)
+            iso, total, action = parse_entry_form(request.form)
         except ValueError as exc:
             error = str(exc)
         else:
-            db.execute("UPDATE entries SET work_date = ?, minutes = ? WHERE id = ?",
-                       (iso, total, entry_id))
+            db.execute("UPDATE entries SET work_date = ?, minutes = ?, action = ? WHERE id = ?",
+                       (iso, total, action, entry_id))
             db.commit()
-            flash(f"Updated to {fmt_duration(total)} on {fmt_day(iso)}.")
+            signed_total = -total if action == "take" else total
+            flash(f"Updated to {fmt_duration(signed_total)} on {fmt_day(iso)}.")
             return redirect(url_for("overview"))
     else:
         h, m = divmod(row["minutes"], 60)
-        form = {"date": row["work_date"], "hours": str(h) if h else "",
+        form = {"date": row["work_date"], "action": row["action"], "hours": str(h) if h else "",
                 "minutes": str(m) if m else ""}
     return render_template("log.html", form=form, error=error,
                            editing=entry_id, autofill_today=False)
@@ -315,7 +329,8 @@ def delete(entry_id):
 @login_required
 def overview():
     rows = get_db().execute(
-        "SELECT id, work_date, minutes FROM entries "
+        "SELECT id, work_date, action, "
+        "CASE WHEN action = 'take' THEN -minutes ELSE minutes END AS minutes FROM entries "
         "ORDER BY work_date DESC, id DESC").fetchall()
     months = []
     for row in rows:
@@ -335,7 +350,8 @@ def overview():
 @login_required
 def export_csv():
     rows = get_db().execute(
-        "SELECT work_date, minutes FROM entries "
+        "SELECT work_date, CASE WHEN action = 'take' THEN -minutes ELSE minutes END AS minutes "
+        "FROM entries "
         "ORDER BY work_date, id").fetchall()
     out = io.StringIO()
     writer = csv.writer(out)

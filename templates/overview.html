@@ -26,7 +26,7 @@
       <li>
         <span class="day">{{ e.work_date|day }}</span>
         <span class="dur">{{ e.minutes|dur }}</span>
-        <span class="muted dec">{{ e.minutes|dec }}</span>
+        <span class="muted dec">{{ 'Taken' if e.action == 'take' else 'Added' }} &middot; {{ e.minutes|dec }}</span>
         <span class="actions">
           <a href="{{ url_for('edit', entry_id=e.id) }}">Edit</a>
           <form method="post" action="{{ url_for('delete', entry_id=e.id) }}"
