@@ -1,35 +1,75 @@
 # Overtime
 
-A small, single-user web app for recording and reviewing overtime. Log time by date, edit or delete entries, see totals by month and overall, and export your entries as CSV.
+A small, single-user web app for recording and reviewing overtime. Log time by date, edit or delete entries, review monthly and overall totals, and export your entries as CSV.
 
-The app is built with Flask and SQLite and runs in Docker on port `8000`.
+[![Last Commit][last-commit-shield]][last-commit-url]
+[![Build Status][build-shield]][build-url]
+[![Repo Size][repo-size-shield]][repo-size-url]
+[![Author][author-shield]][author-url]
+
+## Index
+
+1. [About the project](#about-the-project)
+2. [Features](#features)
+3. [Built with](#built-with)
+4. [Getting started](#getting-started)
+5. [Configuration](#configuration)
+6. [Scripts](#scripts)
+7. [Testing](#testing)
+8. [Deployment](#deployment)
+9. [Contributing](#contributing)
+11. [Authors](#authors)
+
+# About the project
+
+Overtime is a small Flask application for keeping track of personal overtime. It stores entries in SQLite and provides a simple web interface to log and manage time, view totals, and download a CSV export.
 
 ## Features
 
 - Password-protected access for one user
-- Log time as hours, minutes, or both; decimal hours and long minute values are supported
-- Review, edit, and delete entries, with monthly and overall totals
-- Export entries as CSV
+- Log time by date using hours, minutes, or both; decimal hours and long minute values are supported
+- View entries grouped by month, with monthly and overall totals
+- Edit or delete entries
+- Export logged time as CSV
 - Persistent SQLite storage and a `/healthz` health check
 
-## Quick start with Docker
+## Built with
 
-Build the image and start the app with a persistent Docker volume:
+[![Python][tech-1-shield]][tech-1-url]
+[![Flask][tech-2-shield]][tech-2-url]
+[![SQLite][tech-3-shield]][tech-3-url]
+
+# Getting started
+
+## Prerequisites
+
+- Docker
+- Docker Compose (for the Compose deployment)
+
+## Installation
+
+Clone the repository and prepare the environment file:
+
+```sh
+git clone https://github.com/erikpersson0884/overtime.git
+cd overtime
+cp .env.example .env
+```
+
+Set `SECRET_KEY`, `APP_USERNAME`, and `APP_PASSWORD_HASH` in `.env`, then build and run the app locally:
 
 ```sh
 docker build -t overtime .
 docker run --rm -p 8000:8000 \
+  --env-file .env \
   -e COOKIE_SECURE=false \
-  -e SECRET_KEY=dev \
-  -e APP_USERNAME=me \
-  -e APP_PASSWORD=test \
   -v overtime-data:/data \
   overtime
 ```
 
-Open [http://localhost:8000](http://localhost:8000). This example is for local testing only: use a strong secret and password, and keep secure cookies enabled when serving the app over HTTPS.
+Open [http://localhost:8000](http://localhost:8000). `COOKIE_SECURE=false` is for local HTTP testing only. Keep secure cookies enabled when serving the app over HTTPS.
 
-## Configuration
+# Configuration
 
 The app requires a secret key, username, and either a password hash or a plain-text password. A password hash is recommended.
 
@@ -54,27 +94,47 @@ Generate a password hash with Docker:
 docker run --rm -it python:3.12-slim sh -c "pip install -q werkzeug && python -c 'import getpass; from werkzeug.security import generate_password_hash as g; print(g(getpass.getpass()))'"
 ```
 
-If you put the hash in a `.env` file, enclose it in single quotes because it contains `$` characters. If your deployment tooling mangles the hash, `APP_PASSWORD` is supported as an alternative.
+The hash contains `$` characters. If you put it in a `.env` file, enclose it in single quotes. If your deployment tooling mangles the hash, `APP_PASSWORD` is supported as an alternative.
 
-## Docker Compose
+# Scripts
 
-Copy `.env.example` to `.env` and set `SECRET_KEY`, `APP_USERNAME`, and `APP_PASSWORD_HASH`. Then start the service:
+| Command | What it does |
+|---|---|
+| `docker build -t overtime .` | Build the Docker image locally. |
+| `docker run --rm -p 8000:8000 ...` | Run the app locally on port `8000`. |
+| `docker compose up --build -d` | Build and start the Compose service. |
+| `docker compose down` | Stop the Compose service; the named data volume is retained. |
+
+# Testing
+
+There is no automated test suite in the repository. For a basic runtime check, start the app and visit `http://localhost:8000/healthz`; it should return `ok`.
+
+# Deployment
+
+The repository includes a `Dockerfile` and a `docker-compose.yml`. Configure `.env` with `SECRET_KEY`, `APP_USERNAME`, and `APP_PASSWORD_HASH`, then start the Compose service:
 
 ```sh
 docker compose up --build -d
 ```
 
-Compose keeps the database in the `overtime-data` named volume. The supplied Compose file does not publish port `8000` to the host; connect it to your reverse proxy or adjust the Compose port configuration if you need direct host access. When exposed publicly, use HTTPS and leave `COOKIE_SECURE` enabled.
+The Compose file does not publish port `8000` to the host. Connect the service to your reverse proxy or adjust the Compose port configuration if you need direct host access. Use HTTPS for public access and leave `COOKIE_SECURE` enabled.
 
-## Data and backups
+The published image is `ghcr.io/erikpersson0884/overtime/app:latest`. The GitHub Actions workflow publishes `linux/amd64` and `linux/arm64` images when changes are pushed to `main`.
 
-The SQLite database is stored at `/data/overtime.db` inside the container (in the Docker volume when using the examples above). Stop the app before copying the database file for a backup.
+**Runtime details:**
 
-## Container image
+- **Port:** The container listens on port `8000`.
+- **Health check:** `GET /healthz` returns `ok`.
+- **Data:** SQLite is stored at `/data/overtime.db` in the persistent `overtime-data` volume. Stop the app before copying the database file for a backup.
 
-The published image is `ghcr.io/erikpersson0884/overtime/app:latest`. The GitHub Actions workflow builds and publishes `linux/amd64` and `linux/arm64` images when changes are pushed to `main`.
+# Contributing
 
-The container listens on port `8000` and includes a health check at `/healthz`.
+1. Fork the repository.
+2. Create a branch (`git checkout -b feature-branch`).
+3. Make your changes and build the Docker image to check them.
+4. Commit and push your branch.
+5. Open a pull request.
+
 
 # Authors
 
@@ -84,3 +144,23 @@ The container listens on port `8000` and includes a health check at `/healthz`.
   <strong><a href="https://github.com/erikpersson0884">Erik Persson</a></strong><br />
   Creator &amp; Maintainer
 </p>
+
+
+[last-commit-shield]: https://img.shields.io/github/last-commit/erikpersson0884/overtime/main?style=for-the-badge&cacheSeconds=30
+[last-commit-url]: https://github.com/erikpersson0884/overtime/commits/main
+
+[repo-size-shield]: https://img.shields.io/github/repo-size/erikpersson0884/overtime?style=for-the-badge&cacheSeconds=60
+[repo-size-url]: https://github.com/erikpersson0884/overtime
+
+[author-shield]: https://img.shields.io/badge/Author-Erik_Persson-blue?style=for-the-badge
+[author-url]: https://github.com/erikpersson0884
+
+[build-shield]: https://img.shields.io/github/actions/workflow/status/erikpersson0884/overtime/build-and-push.yml?branch=main&style=for-the-badge
+[build-url]: https://github.com/erikpersson0884/overtime/actions
+
+[tech-1-shield]: https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white&style=for-the-badge
+[tech-1-url]: https://www.python.org/
+[tech-2-shield]: https://img.shields.io/badge/Flask-000000?logo=flask&logoColor=white&style=for-the-badge
+[tech-2-url]: https://flask.palletsprojects.com/
+[tech-3-shield]: https://img.shields.io/badge/SQLite-003B57?logo=sqlite&logoColor=white&style=for-the-badge
+[tech-3-url]: https://www.sqlite.org/
