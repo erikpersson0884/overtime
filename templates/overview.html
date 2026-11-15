@@ -28,11 +28,21 @@
         <span class="dur">{{ e.minutes|dur }}</span>
         <span class="muted dec">{{ 'Taken' if e.action == 'take' else 'Added' }} &middot; {{ e.minutes|dec }}</span>
         <span class="actions">
-          <a href="{{ url_for('edit', entry_id=e.id) }}">Edit</a>
+          <a class="icon-action" href="{{ url_for('edit', entry_id=e.id) }}"
+             aria-label="Edit {{ e.minutes|dur }} on {{ e.work_date|day }}" title="Edit entry">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M4 20h4l11-11-4-4L4 16v4zM13.5 6.5l4 4M15 5l2-2 4 4-2 2"/>
+            </svg>
+          </a>
           <form method="post" action="{{ url_for('delete', entry_id=e.id) }}"
                 data-confirm="Delete {{ e.minutes|dur }} on {{ e.work_date|day }}?">
             <input type="hidden" name="csrf" value="{{ csrf_token }}">
-            <button class="quiet danger" type="submit">Delete</button>
+            <button class="icon-action danger" type="submit"
+                    aria-label="Delete {{ e.minutes|dur }} on {{ e.work_date|day }}" title="Delete entry">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 10v7M14 10v7"/>
+              </svg>
+            </button>
           </form>
         </span>
       </li>

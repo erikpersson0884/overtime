@@ -117,7 +117,8 @@ def fmt_decimal(minutes):
 
 
 def fmt_day(iso):
-    return date.fromisoformat(iso).strftime("%a %d/%m")
+    day = date.fromisoformat(iso)
+    return f"{day.day}/{day.month}"
 
 
 app.jinja_env.filters["dur"] = fmt_duration

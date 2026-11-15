@@ -90,6 +90,13 @@ class OvertimeActionsTest(unittest.TestCase):
         self.post_entry("/", "2026-01-02", "1.5", "take")
         with closing(sqlite3.connect(self.db_path)) as db:
             entry_id = db.execute("SELECT id FROM entries").fetchone()[0]
+        overview = self.client.get("/overview").get_data(as_text=True)
+        self.assertIn(f'href="/edit/{entry_id}"', overview)
+        self.assertIn('aria-label="Edit -1h 30m on 2/1"', overview)
+        self.assertIn(f'action="/delete/{entry_id}"', overview)
+        self.assertIn('aria-label="Delete -1h 30m on 2/1"', overview)
+        self.assertIn('data-confirm="Delete -1h 30m on 2/1?"', overview)
+        self.assertIn('<span class="day">2/1</span>', overview)
         edit_page = self.client.get(f"/edit/{entry_id}").get_data(as_text=True)
         self.assertIn('value="take" selected', edit_page)
         self.assertIn('value="1"', edit_page)
