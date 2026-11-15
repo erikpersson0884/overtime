@@ -89,7 +89,7 @@ input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible
 .pair input { font-size: 1.6rem; font-variant-numeric: tabular-nums; text-align: center; }
 .hint { color: var(--muted); font-size: .85rem; margin: .6rem 0 0; }
 :root[data-theme="meadow"] .hint { font: italic .95rem/1.5 Georgia, serif; }
-.settings-form .primary { margin-top: 1.2rem; }
+.settings-form .primary, .login-form .primary { margin-top: 1.2rem; }
 
 .total {
   display: flex; justify-content: space-between; align-items: baseline;
