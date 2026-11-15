@@ -7,6 +7,7 @@ import tempfile
 import unittest
 from contextlib import closing
 from unittest.mock import patch
+from urllib.parse import urljoin
 
 
 class OvertimeActionsTest(unittest.TestCase):
@@ -42,6 +43,29 @@ class OvertimeActionsTest(unittest.TestCase):
             "csrf": "test-token", "date": date, "hours": hours,
             "minutes": "", "action": action,
         })
+
+    def test_pwa_assets_are_public_and_manifest_icons_exist(self):
+        client = self.app_module.app.test_client()
+        login = client.get("/login").get_data(as_text=True)
+        self.assertIn('href="/static/manifest.webmanifest"', login)
+        self.assertIn('data-service-worker-url="/service-worker.js"', login)
+        manifest_url = "/static/manifest.webmanifest"
+        with closing(client.get(manifest_url)) as response:
+            manifest = response.get_json()
+        self.assertEqual(urljoin(manifest_url, manifest["start_url"]), "/")
+        self.assertEqual(urljoin(manifest_url, manifest["scope"]), "/")
+        self.assertEqual(manifest["display"], "standalone")
+        for icon in manifest["icons"]:
+            with closing(client.get(urljoin(manifest_url, icon["src"]))) as response:
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.mimetype, "image/png")
+                size = int(icon["sizes"].split("x")[0])
+                self.assertEqual(response.data[16:24], size.to_bytes(4, "big") * 2)
+        with closing(client.get("/service-worker.js")) as worker:
+            self.assertEqual(worker.status_code, 200)
+            self.assertEqual(worker.headers["Cache-Control"], "no-store")
+        with closing(client.get("/static/offline.html")) as response:
+            self.assertEqual(response.status_code, 200)
 
     def test_existing_database_is_migrated_without_losing_entries(self):
         path = os.path.join(self.tempdir.name, "legacy.db")

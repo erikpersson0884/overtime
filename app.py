@@ -10,7 +10,7 @@ from datetime import date, timedelta
 from functools import wraps
 
 from flask import (Flask, Response, abort, flash, g, redirect,
-                   render_template, request, session, url_for)
+                   render_template, request, send_from_directory, session, url_for)
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import check_password_hash
 
@@ -195,7 +195,7 @@ def login_required(view):
 
 @app.before_request
 def csrf_protect():
-    if request.endpoint in ("healthz", "static"):
+    if request.endpoint in ("healthz", "static", "service_worker"):
         return
     if "csrf" not in session:
         session["csrf"] = secrets.token_urlsafe(32)
@@ -232,6 +232,11 @@ def security_headers(resp):
 @app.route("/healthz")
 def healthz():
     return "ok"
+
+
+@app.route("/service-worker.js")
+def service_worker():
+    return send_from_directory(app.static_folder, "service-worker.js")
 
 
 @app.route("/login", methods=["GET", "POST"])

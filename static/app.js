@@ -1,4 +1,10 @@
 (function () {
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register(document.currentScript.dataset.serviceWorkerUrl).catch(function (error) {
+      console.error("Service worker registration failed:", error);
+    });
+  }
+
   // Prefill today's date from the phone's own clock (not the server's).
   var dateInput = document.querySelector("input[data-today]");
   if (dateInput) {

@@ -34,6 +34,7 @@ Overtime is a small Flask application for keeping track of personal overtime. It
 - Choose the default or Meadow theme in Settings; the choice is saved across devices
 - Export logged time as CSV, with taken overtime shown as negative minutes and hours
 - Persistent SQLite storage and a `/healthz` health check
+- Installable as a progressive web app, with an offline status page
 
 Taking overtime creates a separate entry and reduces the balance, which can become negative. Existing entries remain additions.
 
@@ -72,6 +73,13 @@ docker run --rm -p 8000:8000 \
 ```
 
 Open [http://localhost:8000](http://localhost:8000). `COOKIE_SECURE=false` is for local HTTP testing only. Keep secure cookies enabled when serving the app over HTTPS.
+
+## Install as an app
+
+Open Overtime over HTTPS (or on localhost), then use your browser's install
+option. On iPhone or iPad, use Share → Add to Home Screen. The app needs a
+connection to view or change entries; when offline it shows a status page
+instead. Personal entries are not stored in the offline cache.
 
 # Configuration
 
