@@ -97,7 +97,7 @@ Generate a password hash with Docker:
 docker run --rm -it python:3.12-slim sh -c "pip install -q werkzeug && python -c 'import getpass; from werkzeug.security import generate_password_hash as g; print(g(getpass.getpass()))'"
 ```
 
-The hash contains `$` characters. If you put it in a `.env` file, enclose it in single quotes. If your deployment tooling mangles the hash, `APP_PASSWORD` is supported as an alternative.
+The hash contains `$` characters. If you put it in a `.env` file, enclose it in single quotes. If your deployment tooling mangles the hash, set `APP_PASSWORD` instead and leave `APP_PASSWORD_HASH` empty. Docker Compose passes either option to the app.
 
 # Scripts
 

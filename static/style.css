@@ -55,7 +55,6 @@ h2 { font-size: 1.05rem; margin: 0; }
 .top { display: flex; justify-content: space-between; align-items: center; padding-top: .75rem; }
 .top form { margin: 0; }
 .top-actions { display: flex; align-items: center; gap: .8rem; }
-.top-actions a { color: var(--ink); text-underline-offset: 3px; }
 .top-actions a[aria-current="page"] { font-weight: 700; }
 .brand { color: var(--ink); text-decoration: none; font-weight: 700; letter-spacing: -0.01em; }
 .brand:hover { text-decoration: underline; text-underline-offset: 3px; }
@@ -107,11 +106,12 @@ button { font: inherit; cursor: pointer; }
 }
 .primary:active { transform: translateY(1px); }
 :root[data-theme="meadow"] .primary { border-radius: 999px; }
-.logout {
+.header-button {
+  display: inline-block; text-decoration: none;
   border: 0; border-radius: 10px; padding: .45rem .8rem;
   background: var(--accent); color: var(--accent-ink); font-weight: 600;
 }
-.logout:active { transform: translateY(1px); }
+.header-button:active { transform: translateY(1px); }
 .quiet {
   background: none; border: 0; padding: .4rem .2rem; color: var(--accent);
   text-decoration: underline; text-underline-offset: 3px;
