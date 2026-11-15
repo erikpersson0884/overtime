@@ -8,12 +8,13 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+RUN useradd --system --uid 10001 --create-home app \
+    && mkdir /data && chown app /data
+
 COPY app.py .
 COPY templates templates
 COPY static static
 
-RUN useradd --system --uid 10001 --create-home app \
-    && mkdir /data && chown app /data
 USER app
 VOLUME /data
 EXPOSE 8000
