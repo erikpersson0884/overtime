@@ -1,219 +1,86 @@
-<!--
-  README TEMPLATE
-  ----------------
-  Find and replace these placeholders, then delete sections you don't need:
+# Overtime
 
-  {{PROJECT_NAME}}        Name of the project
-  {{TAGLINE}}             One-line description
-  {{GITHUB_USER}}         GitHub username or organization
-  {{REPO_NAME}}           Repository name
-  {{DEFAULT_BRANCH}}      Usually main
-  {{CI_WORKFLOW_FILE}}    e.g. tests.yml
-  {{AUTHOR_NAME}}         Your name
-  {{AUTHOR_URL}}          Link to your profile or portfolio
+A small, single-user web app for recording and reviewing overtime. Log time by date, edit or delete entries, see totals by month and overall, and export your entries as CSV.
 
-  Remove the <!-- hint --> comments before publishing.
--->
-
-# {{PROJECT_NAME}}
-
-{{TAGLINE}}
-
-[![Last Commit][last-commit-shield]][last-commit-url]
-[![Build Status][build-shield]][build-url]
-[![Test Coverage][coverage-shield]][coverage-url]
-[![Repo Size][repo-size-shield]][repo-size-url]
-[![Author][author-shield]][author-url]
-
-<!-- Add a screenshot or demo GIF here, e.g. docs/screenshot.png -->
-<!-- ![{{PROJECT_NAME}}](docs/screenshot.png) -->
-
-# Index
-
-1. [About the project](#about-the-project)
-1. [Features](#features)
-1. [Built with](#built-with)
-1. [Getting started](#getting-started)
-1. [Configuration](#configuration)
-1. [Scripts](#scripts)
-1. [Testing](#testing)
-1. [Code analysis](#code-analysis)
-1. [Deployment](#deployment)
-1. [Contributing](#contributing)
-1. [License](#license)
-1. [Authors](#authors)
-1. [Acknowledgments](#acknowledgments)
-
-# About the project
-
-{{Two to four sentences: what the project is, who it is for, and what problem it solves.}}
-
-<!-- Optional: if this repo depends on another service, say so here. -->
-This repository contains **only the {{frontend / backend / library / CLI}}**. It requires {{dependency name}} ([link]({{DEPENDENCY_URL}})), which {{what it provides}}.
-
-## Built with
-
-<!-- Swap in your own stack. Shield URLs are at the bottom of this file. -->
-![{{TECH_1}}][tech-1-shield]
-![{{TECH_2}}][tech-2-shield]
-![{{TECH_3}}][tech-3-shield]
+The app is built with Flask and SQLite and runs in Docker on port `8000`.
 
 ## Features
 
-- {{Feature one}}
-- {{Feature two}}
-- {{Feature three}}
-- {{Feature four}}
+- Password-protected access for one user
+- Log time as hours, minutes, or both; decimal hours and long minute values are supported
+- Review, edit, and delete entries, with monthly and overall totals
+- Export entries as CSV
+- Persistent SQLite storage and a `/healthz` health check
 
-# Getting started
+## Quick start with Docker
 
-## Prerequisites
-
-- {{Runtime or tool, with minimum version, e.g. Node.js 20+}}
-- {{Any external service that must be running}}
-
-## Installation
+Build the image and start the app with a persistent Docker volume:
 
 ```sh
-# Clone the repository
-git clone https://github.com/{{GITHUB_USER}}/{{REPO_NAME}}.git
-
-# Navigate into the project directory
-cd {{REPO_NAME}}
-
-# Install dependencies
-{{install command, e.g. npm install}}
-
-# Start the project
-{{start command, e.g. npm run dev}}
+docker build -t overtime .
+docker run --rm -p 8000:8000 \
+  -e COOKIE_SECURE=false \
+  -e SECRET_KEY=dev \
+  -e APP_USERNAME=me \
+  -e APP_PASSWORD=test \
+  -v overtime-data:/data \
+  overtime
 ```
 
-The app runs on {{http://localhost:PORT}}. {{Any notes, e.g. proxying or default credentials.}}
+Open [http://localhost:8000](http://localhost:8000). This example is for local testing only: use a strong secret and password, and keep secure cookies enabled when serving the app over HTTPS.
 
-# Configuration
+## Configuration
 
-<!-- Delete this section if nothing is configurable. -->
-Using a `.env` file is {{optional / required}}. Copy `.env.example` to `.env` to change the defaults.
+The app requires a secret key, username, and either a password hash or a plain-text password. A password hash is recommended.
 
-| Variable | Default | Description |
-|---|---|---|
-| `{{VAR_NAME}}` | `{{default}}` | {{What it controls}} |
-| `{{VAR_NAME}}` | `{{default}}` | {{What it controls}} |
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `SECRET_KEY` | Yes | — | Flask session signing key. Use a long, random value. Changing it invalidates existing sessions. |
+| `APP_USERNAME` | Yes | — | The single login username. |
+| `APP_PASSWORD_HASH` | One of these is required | — | Werkzeug password hash. Takes precedence if both password settings are set. |
+| `APP_PASSWORD` | One of these is required | — | Plain-text password fallback; use a hash when possible. |
+| `COOKIE_SECURE` | No | `true` | Set to `false` only for local testing over HTTP. Keep the default when using HTTPS. |
+| `DB_PATH` | No | `/data/overtime.db` | SQLite database file path. |
 
-# Scripts
-
-| Command | What it does |
-|---|---|
-| `{{dev command}}` | {{Start the dev server}} |
-| `{{build command}}` | {{Build for production}} |
-| `{{test command}}` | {{Run the tests}} |
-| `{{coverage command}}` | {{Run tests with a coverage report}} |
-
-# Testing
-
-Tests use {{test framework}}. They cover {{what is covered, e.g. API layer, utilities, components}}.
+Generate a secret key with:
 
 ```sh
-{{coverage command}}
+openssl rand -hex 32
 ```
 
-<!-- Optional: explain how the coverage badge is updated. -->
-The coverage badge is updated by a GitHub Actions workflow on every push to `{{DEFAULT_BRANCH}}`.
-
-# Code analysis
-
-<!-- Optional. Delete if you don't use a static analysis tool. -->
-The project can optionally be analyzed with {{tool, e.g. SonarQube}}. This requires access to your own server, so it is not part of the normal setup.
-
-1. Create a project in {{tool}} and generate an access token.
-2. Set the server details as environment variables:
-
-   ```sh
-   export {{TOOL}}_HOST_URL={{http://your-server:PORT}}
-   export {{TOOL}}_TOKEN=your_token
-   ```
-
-3. Make sure the project key in {{config file}} matches your project, or override it:
-
-   ```sh
-   {{command with project key override}}
-   ```
-
-4. Generate coverage, then run the analysis:
-
-   ```sh
-   {{coverage command}}
-   {{analysis command}}
-   ```
-
-Never commit your token.
-
-# Deployment
-
-<!-- Describe how to ship the project. Docker is shown as an example. -->
-The repository includes a `Dockerfile` and a `docker-compose.yml`.
+Generate a password hash with Docker:
 
 ```sh
-docker compose up --build
+docker run --rm -it python:3.12-slim sh -c "pip install -q werkzeug && python -c 'import getpass; from werkzeug.security import generate_password_hash as g; print(g(getpass.getpass()))'"
 ```
 
-The app is then available on {{http://localhost:PORT}} (host port {{HOST_PORT}} maps to port {{CONTAINER_PORT}} in the container).
+If you put the hash in a `.env` file, enclose it in single quotes because it contains `$` characters. If your deployment tooling mangles the hash, `APP_PASSWORD` is supported as an alternative.
 
-**Requirements at runtime:** {{e.g. a backend reachable as `service-name` on port 8080 on the same Docker network}}.
+## Docker Compose
 
-## How it is configured
+Copy `.env.example` to `.env` and set `SECRET_KEY`, `APP_USERNAME`, and `APP_PASSWORD_HASH`. Then start the service:
 
-<!-- Optional: explain non-obvious deployment config such as nginx, env vars or volumes. -->
-- **{{Aspect one}}:** {{Explanation}}
-- **{{Aspect two}}:** {{Explanation}}
-- **{{Aspect three}}:** {{Explanation}}
+```sh
+docker compose up --build -d
+```
 
-# Contributing
+Compose keeps the database in the `overtime-data` named volume. The supplied Compose file does not publish port `8000` to the host; connect it to your reverse proxy or adjust the Compose port configuration if you need direct host access. When exposed publicly, use HTTPS and leave `COOKIE_SECURE` enabled.
 
-If you want to contribute, follow these steps:
+## Data and backups
 
-1. Fork the repository
-2. Create a new branch (`git checkout -b feature-branch`)
-3. Make your changes and run the tests (`{{test command}}`)
-4. Commit your changes (`git commit -m 'Add new feature'`)
-5. Push to the branch (`git push origin feature-branch`)
-6. Create a Pull Request
+The SQLite database is stored at `/data/overtime.db` inside the container (in the Docker volume when using the examples above). Stop the app before copying the database file for a backup.
 
-# License
+## Container image
 
-<!-- Pick a license and add a LICENSE file, e.g. MIT. -->
-Distributed under the {{LICENSE_NAME}} license. See `LICENSE` for more information.
+The published image is `ghcr.io/erikpersson0884/overtime/app:latest`. The GitHub Actions workflow builds and publishes `linux/amd64` and `linux/arm64` images when changes are pushed to `main`.
+
+The container listens on port `8000` and includes a health check at `/healthz`.
 
 # Authors
 
-- [{{AUTHOR_NAME}}]({{AUTHOR_URL}})
-
-# Acknowledgments
-
-- [{{Person or project}}]({{URL}}) for {{what they contributed}}
-- [{{Person or project}}]({{URL}}) for {{what they contributed}}
-
-
-<!-- Repo info shields -->
-[last-commit-shield]: https://img.shields.io/github/last-commit/{{GITHUB_USER}}/{{REPO_NAME}}/{{DEFAULT_BRANCH}}?style=for-the-badge&cacheSeconds=30
-[last-commit-url]: https://github.com/{{GITHUB_USER}}/{{REPO_NAME}}/commits/{{DEFAULT_BRANCH}}
-
-[repo-size-shield]: https://img.shields.io/github/repo-size/{{GITHUB_USER}}/{{REPO_NAME}}?style=for-the-badge&cacheSeconds=60
-[repo-size-url]: https://github.com/{{GITHUB_USER}}/{{REPO_NAME}}
-
-[author-shield]: https://img.shields.io/badge/Author-{{AUTHOR_NAME_URL_ENCODED}}-blue?style=for-the-badge
-[author-url]: {{AUTHOR_URL}}
-
-[build-shield]: https://img.shields.io/github/actions/workflow/status/{{GITHUB_USER}}/{{REPO_NAME}}/{{CI_WORKFLOW_FILE}}?branch={{DEFAULT_BRANCH}}&style=for-the-badge
-[build-url]: https://github.com/{{GITHUB_USER}}/{{REPO_NAME}}/actions
-
-
-<!-- Tech stack shields. Format: https://img.shields.io/badge/NAME-HEXCOLOR?logo=LOGONAME&logoColor=white&style=for-the-badge -->
-[tech-1-shield]: https://img.shields.io/badge/{{TECH_1}}-{{HEX}}?logo={{logo-slug}}&logoColor=white&style=for-the-badge
-[tech-2-shield]: https://img.shields.io/badge/{{TECH_2}}-{{HEX}}?logo={{logo-slug}}&logoColor=white&style=for-the-badge
-[tech-3-shield]: https://img.shields.io/badge/{{TECH_3}}-{{HEX}}?logo={{logo-slug}}&logoColor=white&style=for-the-badge
-
-
-<!-- Test coverage shield (requires a workflow that writes .github/coverage.json to a "coverage" branch) -->
-[coverage-shield]: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/{{GITHUB_USER}}/{{REPO_NAME}}/coverage/.github/coverage.json&style=for-the-badge&v=2
-[coverage-url]: https://github.com/{{GITHUB_USER}}/{{REPO_NAME}}/actions
+<p align="center">
+  <img src="https://github.com/erikpersson0884.png?size=100" alt="Erik Persson" width="100" height="100" />
+  <br />
+  <strong><a href="https://github.com/erikpersson0884">Erik Persson</a></strong><br />
+  Creator &amp; Maintainer
+</p>
