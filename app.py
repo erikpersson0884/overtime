@@ -79,6 +79,10 @@ def init_db():
                 ts REAL NOT NULL
             );
             CREATE INDEX IF NOT EXISTS idx_fail_ip ON login_failures(ip, ts);
+            CREATE TABLE IF NOT EXISTS settings (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL
+            );
         """)
         db.execute("BEGIN IMMEDIATE")
         columns = {row[1] for row in db.execute("PRAGMA table_info(entries)")}
@@ -201,8 +205,12 @@ def csrf_protect():
 
 
 @app.context_processor
-def inject_csrf():
-    return {"csrf_token": session.get("csrf", "")}
+def inject_globals():
+    row = get_db().execute("SELECT value FROM settings WHERE key = 'theme'").fetchone()
+    return {
+        "csrf_token": session.get("csrf", ""),
+        "theme": row["value"] if row else "default",
+    }
 
 
 @app.after_request
@@ -261,6 +269,27 @@ def login():
 def logout():
     session.clear()
     return redirect(url_for("login"))
+
+
+@app.route("/settings", methods=["GET", "POST"])
+@login_required
+def settings():
+    error = None
+    if request.method == "POST":
+        theme = request.form.get("theme", "")
+        if theme not in ("default", "meadow"):
+            error = "Choose a valid theme."
+        else:
+            db = get_db()
+            db.execute(
+                "INSERT INTO settings (key, value) VALUES ('theme', ?) "
+                "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+                (theme,),
+            )
+            db.commit()
+            flash("Settings saved.")
+            return redirect(url_for("settings"))
+    return render_template("settings.html", error=error)
 
 
 @app.route("/", methods=["GET", "POST"])

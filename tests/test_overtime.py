@@ -5,6 +5,7 @@ import os
 import sqlite3
 import tempfile
 import unittest
+from contextlib import closing
 from unittest.mock import patch
 
 
@@ -28,8 +29,9 @@ class OvertimeActionsTest(unittest.TestCase):
         cls.tempdir.cleanup()
 
     def setUp(self):
-        with sqlite3.connect(self.db_path) as db:
+        with closing(sqlite3.connect(self.db_path)) as db, db:
             db.execute("DELETE FROM entries")
+            db.execute("DELETE FROM settings")
         self.client = self.app_module.app.test_client()
         with self.client.session_transaction() as session:
             session["auth"] = True
@@ -43,7 +45,7 @@ class OvertimeActionsTest(unittest.TestCase):
 
     def test_existing_database_is_migrated_without_losing_entries(self):
         path = os.path.join(self.tempdir.name, "legacy.db")
-        with sqlite3.connect(path) as db:
+        with closing(sqlite3.connect(path)) as db, db:
             db.executescript("""
                 CREATE TABLE entries (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -57,7 +59,7 @@ class OvertimeActionsTest(unittest.TestCase):
         with patch.object(self.app_module, "DB_PATH", path):
             self.app_module.init_db()
             self.app_module.init_db()
-        with sqlite3.connect(path) as db:
+        with closing(sqlite3.connect(path)) as db:
             row = db.execute(
                 "SELECT id, work_date, minutes, created_at, action FROM entries"
             ).fetchone()
@@ -77,7 +79,7 @@ class OvertimeActionsTest(unittest.TestCase):
             ["2026-01-02", "60", "1.00"],
             ["2026-02-02", "-150", "-2.50"],
         ])
-        with sqlite3.connect(self.db_path) as db:
+        with closing(sqlite3.connect(self.db_path)) as db:
             taken_id = db.execute("SELECT id FROM entries WHERE action = 'take'").fetchone()[0]
         self.client.post(f"/delete/{taken_id}", data={"csrf": "test-token"})
         page = self.client.get("/overview").get_data(as_text=True)
@@ -86,7 +88,7 @@ class OvertimeActionsTest(unittest.TestCase):
 
     def test_edit_changes_action_and_delete_reverses_effect(self):
         self.post_entry("/", "2026-01-02", "1.5", "take")
-        with sqlite3.connect(self.db_path) as db:
+        with closing(sqlite3.connect(self.db_path)) as db:
             entry_id = db.execute("SELECT id FROM entries").fetchone()[0]
         edit_page = self.client.get(f"/edit/{entry_id}").get_data(as_text=True)
         self.assertIn('value="take" selected', edit_page)
@@ -101,8 +103,43 @@ class OvertimeActionsTest(unittest.TestCase):
         for action in ("invalid", ""):
             response = self.post_entry("/", "2026-01-02", "1", action)
             self.assertIn("Choose whether to add or take overtime.", response.get_data(as_text=True))
-        with sqlite3.connect(self.db_path) as db:
+        with closing(sqlite3.connect(self.db_path)) as db:
             self.assertEqual(db.execute("SELECT COUNT(*) FROM entries").fetchone()[0], 0)
+
+    def test_theme_is_saved_and_shared_across_sessions(self):
+        page = self.client.get("/settings").get_data(as_text=True)
+        self.assertIn('data-theme="default"', page)
+        self.assertIn('value="default" selected', page)
+
+        response = self.client.post("/settings", data={"csrf": "test-token", "theme": "meadow"})
+        self.assertEqual(response.status_code, 302)
+        self.app_module.init_db()
+        other_client = self.app_module.app.test_client()
+        with other_client.session_transaction() as session:
+            session["auth"] = True
+            session["csrf"] = "other-token"
+        for path in ("/", "/overview", "/settings"):
+            self.assertIn('data-theme="meadow"', other_client.get(path).get_data(as_text=True))
+        page = other_client.get("/settings").get_data(as_text=True)
+        self.assertIn('value="meadow" selected', page)
+        self.client.post("/logout", data={"csrf": "test-token"})
+        self.assertIn('data-theme="meadow"', self.client.get("/login").get_data(as_text=True))
+
+        other_client.post("/settings", data={"csrf": "other-token", "theme": "default"})
+        self.assertIn('data-theme="default"', other_client.get("/").get_data(as_text=True))
+
+    def test_settings_requires_auth_csrf_and_valid_theme(self):
+        other_client = self.app_module.app.test_client()
+        self.assertEqual(other_client.get("/settings").status_code, 302)
+        self.assertEqual(self.client.post("/settings", data={"theme": "meadow"}).status_code, 400)
+        response = self.client.post("/settings", data={"csrf": "test-token", "theme": "invalid"})
+        self.assertIn("Choose a valid theme.", response.get_data(as_text=True))
+        self.assertIn('data-theme="default"', self.client.get("/").get_data(as_text=True))
+
+    def test_header_title_links_to_home(self):
+        for path in ("/", "/overview", "/settings"):
+            page = self.client.get(path).get_data(as_text=True)
+            self.assertIn('<a class="brand" href="/">Overtime</a>', page)
 
 
 if __name__ == "__main__":
