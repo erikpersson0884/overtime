@@ -40,5 +40,5 @@ jobs:
                 cache-from: type=gha
                 cache-to: type=gha,mode=max
                 tags: |
-                  ghcr.io/${{ github.repository }}/app:latest
-                  ghcr.io/${{ github.repository }}/app:${{ github.sha }}
+                  ghcr.io/${{ github.repository }}:latest
+                  ghcr.io/${{ github.repository }}:${{ github.sha }}
