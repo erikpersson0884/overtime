@@ -1,8 +1,24 @@
 {% extends "base.html" %}
 {% block title %}Overview - Overtime{% endblock %}
 {% block content %}
+{% macro total() %}
+  <div class="grand">
+    <div>
+      <span class="grand-label">Total overtime</span>
+      <strong class="grand-value">{{ grand|dur }}</strong>
+      {% if filtered %}<span class="muted">(out of {{ overall|dur }} overall)</span>{% endif %}
+    </div>
+    <a class="quiet" href="{{ url_for('export_csv', **filters) }}">Export CSV</a>
+  </div>
+{% endmacro %}
+<div class="overview-page{% if not error and (months or filtered) %} has-total{% endif %}">
 <h1>Overview</h1>
 
+{% if theme == 'meadow' and not error and (months or filtered) %}
+  {{ total() }}
+{% endif %}
+
+<div class="overview-sheet">
 <details class="card filters"{% if error %} open{% endif %}>
   <summary>Filter entries{% if filtered %} <span class="muted">(active)</span>{% endif %}</summary>
   <form method="get" action="{{ url_for('overview') }}">
@@ -34,15 +50,7 @@
 {% elif not months and not filtered %}
   <p class="empty">No overtime logged yet. Add your first entry on the Log time tab.</p>
 {% else %}
-  <div class="grand">
-    <div>
-      <span class="grand-label">Total overtime</span>
-      <strong class="grand-value">{{ grand|dur }}</strong>
-      <span class="muted">{{ grand|dec }}{% if filtered %} (out of {{ overall|dur }} overall){% endif %}</span>
-    </div>
-    <a class="quiet" href="{{ url_for('export_csv', **filters) }}">Export CSV</a>
-  </div>
-
+  {% if theme != 'meadow' %}{{ total() }}{% endif %}
   {% if not months %}
     <p class="empty">No entries match these filters.</p>
   {% endif %}
@@ -50,7 +58,7 @@
   <section class="month">
     <div class="month-head">
       <h2>{{ month.label }}</h2>
-      <span class="month-total">{{ month.total|dur }} <span class="muted">({{ month.total|dec }})</span></span>
+      <span class="month-total">{{ month.total|dur }}</span>
     </div>
     <ul class="entries">
       {% for e in month.entries %}
@@ -82,4 +90,6 @@
   </section>
   {% endfor %}
 {% endif %}
+</div>
+</div>
 {% endblock %}
