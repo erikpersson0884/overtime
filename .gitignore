@@ -1,0 +1,19 @@
+# Secrets: never commit your real values
+.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Local data (the live database belongs in the Docker volume, not git)
+*.db
+*.db-wal
+*.db-shm
+*.sqlite3
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store

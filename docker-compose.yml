@@ -1,0 +1,15 @@
+services:
+  overtime:
+    build: .
+    container_name: overtime
+    restart: unless-stopped
+    environment:
+      SECRET_KEY: ${SECRET_KEY}
+      APP_USERNAME: ${APP_USERNAME}
+      APP_PASSWORD_HASH: ${APP_PASSWORD_HASH}
+      # COOKIE_SECURE: "true"   # keep true behind HTTPS (Cloudflare/Traefik)
+    volumes:
+      - overtime-data:/data
+
+volumes:
+  overtime-data:

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit entry' if editing else 'Log time' }} - Overtime{% endblock %}
+{% block content %}
+<h1>{{ 'Edit entry' if editing else 'Log overtime' }}</h1>
+<form method="post" class="card" id="entry-form"
+      action="{{ url_for('edit', entry_id=editing) if editing else url_for('log') }}">
+  <input type="hidden" name="csrf" value="{{ csrf_token }}">
+  {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+
+  <label for="date">Date</label>
+  <input id="date" name="date" type="date" value="{{ form.date }}" required
+         {% if autofill_today %}data-today{% endif %}>
+
+  <div class="pair">
+    <div>
+      <label for="hours">Hours</label>
+      <input id="hours" name="hours" type="text" inputmode="decimal" placeholder="0"
+             value="{{ form.hours }}" autocomplete="off">
+    </div>
+    <div>
+      <label for="minutes">Minutes</label>
+      <input id="minutes" name="minutes" type="text" inputmode="decimal" placeholder="0"
+             value="{{ form.minutes }}" autocomplete="off">
+    </div>
+  </div>
+  <p class="hint">Decimals and long minutes are fine: 2.5 hours, or 90 minutes. Both fields are added together.</p>
+
+  <div class="total" aria-live="polite">
+    <span class="total-label">Total</span>
+    <output id="total">0m</output>
+  </div>
+
+  <button class="primary" type="submit">{{ 'Save changes' if editing else 'Save entry' }}</button>
+  {% if editing %}<a class="cancel" href="{{ url_for('overview') }}">Cancel</a>{% endif %}
+</form>
+{% endblock %}

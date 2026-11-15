@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>{% block title %}Overtime{% endblock %}</title>
+  <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  {% if session.get('auth') %}
+  <header class="top">
+    <span class="brand">Overtime</span>
+    <form method="post" action="{{ url_for('logout') }}">
+      <input type="hidden" name="csrf" value="{{ csrf_token }}">
+      <button class="quiet" type="submit">Log out</button>
+    </form>
+  </header>
+  {% endif %}
+
+  <main>
+    {% for message in get_flashed_messages() %}
+      <p class="flash" role="status">{{ message }}</p>
+    {% endfor %}
+    {% block content %}{% endblock %}
+  </main>
+
+  {% if session.get('auth') %}
+  <nav class="tabs">
+    <a href="{{ url_for('log') }}" class="{{ 'on' if request.endpoint in ('log', 'edit') }}">Log time</a>
+    <a href="{{ url_for('overview') }}" class="{{ 'on' if request.endpoint == 'overview' }}">Overview</a>
+  </nav>
+  {% endif %}
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</body>
+</html>

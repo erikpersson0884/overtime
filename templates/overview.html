@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Overview - Overtime{% endblock %}
+{% block content %}
+<h1>Overview</h1>
+
+{% if not months %}
+  <p class="empty">No overtime logged yet. Add your first entry on the Log time tab.</p>
+{% else %}
+  <div class="grand">
+    <div>
+      <span class="grand-label">Total overtime</span>
+      <strong class="grand-value">{{ grand|dur }}</strong>
+      <span class="muted">{{ grand|dec }}</span>
+    </div>
+    <a class="quiet" href="{{ url_for('export_csv') }}">Export CSV</a>
+  </div>
+
+  {% for month in months %}
+  <section class="month">
+    <div class="month-head">
+      <h2>{{ month.label }}</h2>
+      <span class="month-total">{{ month.total|dur }} <span class="muted">({{ month.total|dec }})</span></span>
+    </div>
+    <ul class="entries">
+      {% for e in month.entries %}
+      <li>
+        <span class="day">{{ e.work_date|day }}</span>
+        <span class="dur">{{ e.minutes|dur }}</span>
+        <span class="muted dec">{{ e.minutes|dec }}</span>
+        <span class="actions">
+          <a href="{{ url_for('edit', entry_id=e.id) }}">Edit</a>
+          <form method="post" action="{{ url_for('delete', entry_id=e.id) }}"
+                data-confirm="Delete {{ e.minutes|dur }} on {{ e.work_date|day }}?">
+            <input type="hidden" name="csrf" value="{{ csrf_token }}">
+            <button class="quiet danger" type="submit">Delete</button>
+          </form>
+        </span>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endfor %}
+{% endif %}
+{% endblock %}
